@@ -194,7 +194,7 @@ def get_price(item, ret_list=None):
             result = urlopen(url).read()
         except urllib.error.HTTPError as e:
             if e.code == 429:
-                time.sleep(3)
+                time.sleep(10)
                 continue
             else:
                 print(e.code, e.reason)
@@ -290,7 +290,7 @@ def assess_game_market(game_groups):
             ],
         )))
         # there seems to be throttling for API
-        time.sleep(10)
+        time.sleep(20)
 
 
 def main():

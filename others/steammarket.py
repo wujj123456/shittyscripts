@@ -251,31 +251,43 @@ def assess_game_market(game_groups):
     gem_price = to_float(gem_price.median) / GEMS_PER_SACK
 
     for group in game_groups:
+        cost = gem_price * group.gems
+
+        # pack value
         pack = get_price(group.pack)
+        if pack.median or pack.lowest:
+            pack_sale = min(
+                v for v in [
+                    to_float(pack.median),
+                    to_float(pack.lowest),
+                ] if v != 0
+            )
+            pack_sale *= 0.87
+        else:
+            pack_sale = 0
+        pack_margin = (pack_sale - cost) / cost * 100
+
+        # unpack value
         cards = get_prices(group.cards)
         avg_medium = sum([to_float(p.median) for p in cards]) / len(cards)
         avg_medium *= CARDS_PER_PACK
         avg_lowest = sum([to_float(p.lowest) for p in cards]) / len(cards)
         avg_lowest *= CARDS_PER_PACK
-        # pick lowest among all metrics minus fees
-        sale = min(
-            v for v in [
-                to_float(pack.median),
-                to_float(pack.lowest),
-                avg_lowest,
-                avg_medium,
-            ] if v != 0
-        )
-        sale *= 0.87
-        cost = gem_price * group.gems
-        margin = (sale - cost) / cost * 100
+        unpack_sale = min(avg_lowest, avg_medium)
+        unpack_sale *= 0.87
+        unpack_margin = (unpack_sale - cost) / cost * 100
 
         print(group.name)
         print(tabulate(zip(
             [group.pack] + group.cards +
-            ['Unpack (median)', 'Unpack (lowest)', 'sale', 'cost', 'margin'],
+            ['Unpack value', 'Cost', 'Pack margin', 'Unpack margin'],
             [pack] + cards +
-            [avg_medium, avg_lowest, sale, cost, '{:.2f} %'.format(margin)],
+            [
+                ', '.join('{:.2f}'.format(v) for v in [avg_medium, avg_lowest]),
+                '{:.2f}'.format(cost),
+                '{:.2f} %'.format(pack_margin),
+                '{:.2f} %'.format(unpack_margin),
+            ],
         )))
         # there seems to be throttling for API
         time.sleep(10)

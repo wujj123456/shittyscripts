@@ -250,7 +250,7 @@ def assess_game_market(game_groups):
     print('Cost per sack of gem: {}'.format(gem_price.median))
     gem_price = to_float(gem_price.median) / GEMS_PER_SACK
 
-    for group in game_groups:
+    for idx, group in enumerate(game_groups):
         cost = gem_price * group.gems
 
         # pack value
@@ -290,7 +290,8 @@ def assess_game_market(game_groups):
             ],
         )))
         # there seems to be throttling for API
-        time.sleep(20)
+        if idx != len(game_groups) - 1:
+            time.sleep(20)
 
 
 def main():

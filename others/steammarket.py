@@ -93,21 +93,21 @@ trade_items = [
 #        ],
 #        gems=750,
 #    ),
-    GameGroup(
-        name='Nekopara OVA',
-        pack='758230-NEKOPARA%20OVA%20Booster%20Pack',
-        cards=[
-            '758230-Cinnamon',
-            '758230-Coconut',
-            '758230-Vanilla',
-            '758230-Azuki',
-            '758230-Shigure',
-            '758230-Maple',
-            '758230-Soleil',
-            '758230-Chocola',
-        ],
-        gems=750,
-    ),
+#    GameGroup(
+#        name='Nekopara OVA',
+#        pack='758230-NEKOPARA%20OVA%20Booster%20Pack',
+#        cards=[
+#            '758230-Cinnamon',
+#            '758230-Coconut',
+#            '758230-Vanilla',
+#            '758230-Azuki',
+#            '758230-Shigure',
+#            '758230-Maple',
+#            '758230-Soleil',
+#            '758230-Chocola',
+#        ],
+#        gems=750,
+#    ),
 #    GameGroup(
 #        name='Hyperdimension Neptunia Re;Birth2',
 #        pack='351710-Hyperdimension%20Neptunia%20Re%3BBirth2%20Sisters%20Generation%20Booster%20Pack',
@@ -177,6 +177,18 @@ trade_items = [
 #        ],
 #        gems=1000,
 #    ),
+    GameGroup(
+        name='Cyberdimension Neptunia: 4 Goddesses Online',
+        pack='632350-Cyberdimension%20Neptunia%3A%204%20Goddesses%20Online%20Booster%20Pack',
+        cards=[
+            '632350-The%20Four%20Goddesses',
+            '632350-The%20Four%20CPUs',
+            '632350-The%20Four%20CPUs%20Closeup',
+            '632350-The%20Four%20CPU%20Candidates',
+            '632350-The%20Four%20CPU%20Candidates%20Closeup',
+        ],
+        gems=1200,
+    ),
 ]
 
 

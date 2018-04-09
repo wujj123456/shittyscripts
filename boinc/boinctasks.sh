@@ -10,6 +10,8 @@ num_active_tasks=$(boinccmd --get_tasks | grep "  state:" | grep downloaded | wc
 num_fetching_projects=$(boinccmd --get_simple_gui_info | grep "don't request more work: no" | wc -l)
 num_projects=$(boinccmd --get_simple_gui_info | grep "don't request more work:" | wc -l)
 
+num_hw_threads=$(lscpu -p | grep -c "^[0-9]")
+
 echo "[$(date --rfc-3339=seconds)] Tasks: $num_active_tasks Fetching projects: $num_fetching_projects/$num_projects"
 
 #day=$(date +%u)
@@ -24,12 +26,12 @@ if [ $num_fetching_projects -eq 0 ]; then
 	echo "Enable fetching for $WCG"
 	boinccmd --project $WCG allowmorework
 else
-	if [ $num_active_tasks -ge 32 ]; then
+	if [ $num_active_tasks -ge $num_hw_threads ]; then
 		if [ $num_projects -eq $num_fetching_projects ]; then
 			echo "Disable fetching for $PROJECT_URL"
 			boinccmd --project $PROJECT_URL nomorework
 		fi
-	elif [ $num_active_tasks -le 30 ]; then
+	elif [ $num_active_tasks -le $((num_hw_threads-2)) ]; then
 		if [ $num_projects -gt $num_fetching_projects ]; then
 			echo "Enable fetching for $PROJECT_URL"
 			boinccmd --project $PROJECT_URL allowmorework

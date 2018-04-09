@@ -102,7 +102,7 @@ def print_dates():
     data = sorted(data, key=lambda s:s[1])
     print(tabulate(
         data,
-        headers=['symbol', 'report date', 'type', 'div_date'],
+        headers=['symbol', 'report date', 'type', 'div date'],
     ))
 
 def get_data(func):

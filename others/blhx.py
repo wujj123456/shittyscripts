@@ -72,7 +72,6 @@ def parse_args(args):
 def main():
     args = parse_args(sys.argv[1:])
     exp = ExpTable(ExpGrowthTable)
-    exp.print_table()
     results = []
     for lvl in range(1, args.end_level):
         exp_diff = exp.table[args.end_level] - exp.table[lvl]

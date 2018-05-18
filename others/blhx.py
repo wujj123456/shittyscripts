@@ -5,6 +5,7 @@ import argparse
 from collections import namedtuple
 from pprint import pprint
 import sys
+from tabulate import tabulate
 
 
 ExpGrowth = namedtuple(
@@ -19,7 +20,7 @@ ExpGrowth = namedtuple(
 )
 
 ExpGrowthTable = [
-    ExpGrowth(0, 40, 0, 100, 0),
+    ExpGrowth(1, 40, 100, 100, 0),
     ExpGrowth(40, 60, 4000, 200, 78000),
     ExpGrowth(60, 70, 8000, 300, 196000),
     ExpGrowth(70, 80, 11000, 400, 289500),
@@ -63,7 +64,6 @@ class ExpTable(object):
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description='BLHX friendliness calculator')
-    parser.add_argument('current_level', type=int)
     parser.add_argument('exp_per_battle', type=int)
     parser.add_argument('--end-level', type=int, default=100)
     return parser.parse_args(args)
@@ -72,8 +72,13 @@ def parse_args(args):
 def main():
     args = parse_args(sys.argv[1:])
     exp = ExpTable(ExpGrowthTable)
-    exp_diff = exp.table[args.end_level] - exp.table[args.current_level]
-    print(exp_diff / args.exp_per_battle / 16)
+    exp.print_table()
+    results = []
+    for lvl in range(1, args.end_level):
+        exp_diff = exp.table[args.end_level] - exp.table[lvl]
+        friendiness = exp_diff / args.exp_per_battle / 16
+        results.append((lvl, friendiness))
+    print(tabulate(results, headers=['level', 'friendiness']))
 
 
 if __name__ == '__main__':

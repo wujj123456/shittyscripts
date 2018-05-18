@@ -13,6 +13,7 @@ symbols = set([
     'AMD',
     'AMZN',
     'ATVI',
+    'BILI',
     'EA',
 	'EBAY',
     'FB',

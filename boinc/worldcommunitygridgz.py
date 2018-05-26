@@ -16,7 +16,7 @@ from urllib import parse, request
 
 
 USER = 'wujj123456'
-KEY_FILE = '.wcg.key'
+KEY_FILE = '~/.wcg.key'
 PASSWORD_FILE = '~/.wcg.password'
 FILE_NAME = 'worldcommunitygrid.txt.gz'
 STAT_URL = (

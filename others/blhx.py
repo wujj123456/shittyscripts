@@ -109,88 +109,225 @@ RETIRE_FUEL = {
 }
 
 
-def _color_table(table):
+def color_table(table, value_key, value_efficiency_key):
     """ If level up gains no value, color red. If level up gains more
     value above benchmark, color green. If level up gains more value
     but below benchmark, color blue. The benchmark is the highest
     efficiency across all ship types at max level
     """
+
+    def _format(val):
+        if isinstance(val, float):
+            return '{:4.1f}'.format(val)
+        elif isinstance(val, int):
+            return '{:3}'.format(val)
+        else:
+            return str(val)
+
     # find benchmark
     max_lvl = max(table.keys())
-    benchmark = max(eff for _, eff in table[max_lvl])
+    benchmark = max(v[value_efficiency_key] for v in table[max_lvl])
     colored_table = defaultdict(list)
     for lvl, effs in table.items():
         for i, value in enumerate(effs):
             color = 'green'
             if lvl > 1:
-                if value[0] == table[lvl-1][i][0]:
+                if value[value_key] == table[lvl-1][i][value_key]:
                     # no additional gain
                     color = 'red'
-                elif value[1] < benchmark:
+                elif value[value_efficiency_key] < benchmark:
                     # efficiency below benchmark
                     color = 'blue'
             colored_table[lvl].append(
-                colored('{} {:.2f}'.format(*value), color),
+                colored(' '.join([_format(v) for v in value.values()]), color),
             )
     return colored_table
 
 
-def calc_retire_efficiency(exp_table, gain_table, multiplier, max_lvl):
+def calc_retire_efficiency(exp_table, value_table, multiplier, max_lvl):
     headers = []
-    lvl_to_gain = defaultdict(list)
-    for ship_type, val in gain_table.items():
+    lvl_to_value = defaultdict(list)
+    for ship_type, val in value_table.items():
         headers.append(ship_type)
+        base = (value_table[ship_type] + 30) // 10
         for lvl in range(1, max_lvl + 1):
             exp = exp_table.table[lvl]
-            gain = (lvl * gain_table[ship_type] + 30) // 10
-            # gain per exp when leveling up to this level
-            gain_per_exp = 0
+            value = (lvl * value_table[ship_type] + 30) // 10
+            # value per exp when leveling up to this level
+            value_per_exp = 0.0
             if lvl > 1:
-                gain_per_exp = (gain / exp) * multiplier
-            lvl_to_gain[lvl].append((gain, gain_per_exp))
-    lvl_to_gain = _color_table(lvl_to_gain)
-    return headers, lvl_to_gain
+                value_per_exp = ((value - base) / exp) * multiplier
+            lvl_to_value[lvl].append({
+                'value': value,
+                'value per {} exp'.format(multiplier): value_per_exp,
+            })
+    return headers, lvl_to_value
 
 
-def print_retire_efficiency(headers, lvl_to_gain):
+def splitter():
+    print('====================')
+
+
+def print_retire_efficiency(headers, lvl_to_value):
     rows = []
     headers = ['level'] + headers
-    for lvl, v in lvl_to_gain.items():
+    for lvl, v in lvl_to_value.items():
         rows.append([lvl] + v)
     print(tabulate(rows, headers=headers))
 
 
+def print_retire_table(args, exp_table, name, retire_table, multiplier):
+    if args.rank and args.comfort:
+        exp_per_fuel = HomeExp(
+            rank=args.rank,
+            comfort=args.comfort,
+            multiplier=args.multiplier,
+        ).base_exp_per_fuel
+
+    headers, lvl_to_resource = calc_retire_efficiency(
+        exp_table,
+        retire_table,
+        multiplier,
+        args.max_level,
+    )
+    if args.rank and args.comfort:
+        for lvl, data in lvl_to_resource.items():
+            for entry in data:
+                entry['value per fuel'] = (
+                    entry['value per {} exp'.format(multiplier)] /
+                    multiplier * exp_per_fuel
+                )
+    title = lvl_to_resource[1][0].keys()
+    lvl_to_resource = color_table(
+        lvl_to_resource,
+        'value',
+        'value per {} exp'.format(multiplier),
+    )
+    print()
+    splitter()
+    print('RESOURCE ({})'.format(', '.join(title)))
+    splitter()
+    print()
+    print_retire_efficiency(headers, lvl_to_resource)
+    print()
+
+
 def print_retire(args):
+
     exp = ExpTable()
-    print('==========\nEXP\n==========\n')
+    splitter()
+    print('EXP')
+    splitter()
+    print()
     exp.print_table(args.max_level)
+    print()
 
-    multiplier = 100
-    print('\n==========\nRESOURCE (value, value per 100 xp)\n==========\n')
-    print_retire_efficiency(
-        *calc_retire_efficiency(exp, RETIRE_RESOURCE, 100, args.max_level),
-    )
-    print('\n==========\nFUEL (value, value per 1000 xp)\n==========\n')
-    print_retire_efficiency(
-        *calc_retire_efficiency(exp, RETIRE_FUEL, 1000, args.max_level),
-    )
-    return
+    print_retire_table(args, exp, 'RESOURCE', RETIRE_RESOURCE, 100)
+    print_retire_table(args, exp, 'FUEL', RETIRE_FUEL, 1000)
 
+# home
+
+class HomeExp(object):
+
+    SHIP_MULTIPLIER = {
+        1: 1,
+        2: 1.8,
+        3: 2.4,
+        4: 2.8,
+        5: 3.2,
+    }
+    BASE_FUEL_PER_SEC = 1/3
+    BASE_FUEL_PER_HOUR = BASE_FUEL_PER_SEC * 3600
+
+    def __init__(self, rank, comfort, multiplier=1.0):
+        self.rank = rank
+        self.comfort = comfort
+        self.multiplier = multiplier
+        # exp per hour with single ship, including boost multiplier
+        self.base_exp_per_hour = self._base_exp_per_hour()
+        # per unit of fuel equals to 100 units of food
+        self.base_exp_per_fuel = (
+            100 * self.base_exp_per_hour / self.BASE_FUEL_PER_HOUR
+        )
+        self.exp_per_hour = {}
+        self._calculate()
+
+    def _base_exp_per_hour(self):
+        comfort = 1 + self.comfort / (self.comfort + 100)
+        commander = (240 + self.rank * 12)
+        return commander * comfort * self.multiplier
+
+    def _calculate_exp_per_hour_ship(self, count):
+        ships = self.SHIP_MULTIPLIER[count] / count
+        return self.base_exp_per_hour * ships
+
+    def _calculate(self):
+        for i in range(1, 6):
+            exp_per_hour_ship = self._calculate_exp_per_hour_ship(i)
+            self.exp_per_hour[i] = (
+                exp_per_hour_ship,
+                exp_per_hour_ship * i,
+            )
+
+    def print_exp_table(self):
+        print(tabulate(
+            [(k, *v) for k, v in self.exp_per_hour.items()],
+            headers=['ships', 'exp / (h * ship)', 'exp / h'],
+        ))
+
+
+def print_home(args):
+    home_exp = HomeExp(args.rank, args.comfort)
+    print('Exp per fuel: {}\n'.format(home_exp.base_exp_per_fuel))
+    home_exp.print_exp_table()
+
+
+def get_home_parsers(required):
+    home_parser = argparse.ArgumentParser(add_help=False)
+    home_parser.add_argument(
+        '--rank',
+        type=int,
+        required=required,
+        help='Commander Rank',
+    )
+    home_parser.add_argument(
+        '--comfort',
+        type=int,
+        required=required,
+        help='Comfort rating',
+    )
+    home_parser.add_argument('--multiplier', type=float, default=1.0)
+    return home_parser
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description='BLHX calculator')
     parser.add_argument('-d', '--debug', action='store_true')
     subparsers = parser.add_subparsers()
 
-    friendiness_parser = subparsers.add_parser('love')
+    friendiness_parser = subparsers.add_parser(
+        'love',
+        help='Calculate friendliness gain per level',
+    )
     friendiness_parser.add_argument('exp_per_battle', type=int)
     friendiness_parser.add_argument('--start-level', type=int, default=60)
     friendiness_parser.add_argument('--end-level', type=int, default=100)
     friendiness_parser.set_defaults(func=print_friendiness)
 
-    retire_parser = subparsers.add_parser('retire')
+    home_parser = subparsers.add_parser(
+        'home',
+        parents=[get_home_parsers(required=True)],
+        help='Calculate XP growth rate at home',
+    )
+    home_parser.set_defaults(func=print_home)
+
+    retire_parser = subparsers.add_parser(
+        'retire',
+        parents=[get_home_parsers(required=False)],
+        help='Calculate resource/fuel value for retirement',
+    )
     retire_parser.add_argument('--max-level', type=int, default=15)
     retire_parser.set_defaults(func=print_retire)
+
     return parser.parse_args(args)
 
 

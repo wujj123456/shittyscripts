@@ -205,7 +205,7 @@ def print_retire_table(args, exp_table, name, retire_table, multiplier):
     )
     print()
     splitter()
-    print('RESOURCE ({})'.format(', '.join(title)))
+    print('{} ({})'.format(name, ', '.join(title)))
     splitter()
     print()
     print_retire_efficiency(headers, lvl_to_resource)

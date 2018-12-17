@@ -2,6 +2,7 @@
 
 
 from collections import defaultdict
+from datetime import datetime
 from pprint import pprint
 import re
 import subprocess
@@ -108,6 +109,7 @@ def collect_projects():
 
 def main():
     projects = collect_projects()
+    print(datetime.now())
     print("\n".join([str(p) for p in projects]))
 
 

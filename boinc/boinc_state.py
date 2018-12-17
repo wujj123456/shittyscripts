@@ -90,16 +90,14 @@ class Project:
         return [t for t in self.tasks if t["active_task_state"] == "EXECUTING"]
 
     def __repr__(self):
-        return (
-            "|{name}\n"
-            "|- No more work: {nomorework}\n"
-            "|- Tasks: remaining: {remaining} running: {running}"
-        ).format(
+        output = "{name} | {remaining} tasks, {running} running".format(
             name=self.data["name"],
-            nomorework=self.nomorework,
             remaining=len(self.pending_tasks()),
             running=len(self.running_tasks()),
         )
+        if self.nomorework:
+            output += ", no more new work"
+        return output
 
 
 def collect_projects():

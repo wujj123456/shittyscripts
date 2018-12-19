@@ -65,6 +65,8 @@ class BoincCmd:
 
 class Project:
 
+    FORMAT_STRING = "{name} | {remaining} tasks, {running} running"
+
     def __init__(self, name, data):
         self.name = name
         self.data = data
@@ -72,28 +74,36 @@ class Project:
         self.nomorework = data["don_t_request_more_work"] == "yes"
         self.tasks = self.get_tasks()
 
-    def get_tasks(self):
+    @classmethod
+    def get_all_tasks(self):
         output = []
         tasks = BoincCmd(["--get_tasks"])
-        for t, v in tasks.contents["tasks"].items():
-            if v["project_url"] != self.url:
+        return list(tasks.contents["tasks"].values())
+
+    def get_tasks(self):
+        output = []
+        tasks = self.get_all_tasks()
+        for t in tasks:
+            if t["project_url"] != self.url:
                 continue
-            output.append(v)
+            output.append(t)
         return output
 
-    def pending_tasks(self):
+    @classmethod
+    def pending_tasks(self, tasks):
         """ This include all running and not started tasks """
-        return [t for t in self.tasks if t["state"] == "downloaded"]
+        return [t for t in tasks if t["state"] == "downloaded"]
 
-    def running_tasks(self):
+    @classmethod
+    def running_tasks(self, tasks):
         """ Tasks that are currently running """
-        return [t for t in self.tasks if t["active_task_state"] == "EXECUTING"]
+        return [t for t in tasks if t["active_task_state"] == "EXECUTING"]
 
     def __repr__(self):
-        output = "{name} | {remaining} tasks, {running} running".format(
+        output = self.FORMAT_STRING.format(
             name=self.data["name"],
-            remaining=len(self.pending_tasks()),
-            running=len(self.running_tasks()),
+            remaining=len(self.pending_tasks(self.tasks)),
+            running=len(self.running_tasks(self.tasks)),
         )
         if self.nomorework:
             output += ", no more new work"
@@ -107,7 +117,15 @@ def collect_projects():
 
 def main():
     projects = collect_projects()
+    all_tasks = Project.get_all_tasks()
     print(datetime.now())
+    print(
+        Project.FORMAT_STRING.format(
+            name="Overview",
+            remaining=len(Project.pending_tasks(all_tasks)),
+            running=len(Project.running_tasks(all_tasks)),
+        )
+    )
     print("\n".join([str(p) for p in projects]))
 
 

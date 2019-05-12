@@ -3,9 +3,19 @@
 
 from collections import defaultdict
 from datetime import datetime
+import logging
 from pprint import pprint
 import re
 import subprocess
+import sys
+
+
+logging.basicConfig(
+    stream=sys.stdout,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+)
+logger = logging.getLogger()
 
 
 class BoincCmd:
@@ -118,15 +128,15 @@ def collect_projects():
 def main():
     projects = collect_projects()
     all_tasks = Project.get_all_tasks()
-    print(datetime.now())
-    print(
+    logger.info(
         Project.FORMAT_STRING.format(
             name="Overview",
             remaining=len(Project.pending_tasks(all_tasks)),
             running=len(Project.running_tasks(all_tasks)),
         )
     )
-    print("\n".join([str(p) for p in projects]))
+    for p in projects:
+        logger.info(str(p))
 
 
 if __name__ == "__main__":

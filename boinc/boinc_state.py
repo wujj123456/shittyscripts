@@ -5,6 +5,7 @@ from collections import defaultdict
 from datetime import datetime
 import logging
 from pprint import pprint
+import psutil
 import re
 import subprocess
 import sys
@@ -126,6 +127,7 @@ def collect_projects():
 
 
 def main():
+    psutil.cpu_percent()
     projects = collect_projects()
     all_tasks = Project.get_all_tasks()
     logger.info(
@@ -133,7 +135,7 @@ def main():
             name="Overview",
             remaining=len(Project.pending_tasks(all_tasks)),
             running=len(Project.running_tasks(all_tasks)),
-        )
+        ) + ", util {0:.2f}%".format(psutil.cpu_percent())
     )
     for p in projects:
         logger.info(str(p))

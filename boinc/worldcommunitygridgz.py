@@ -178,7 +178,7 @@ def trim_old_data(data, begin, end):
 
 
 def save_data_to_disk(data):
-    gz = json.dumps(data).encode()
+    gz = json.dumps(data, indent=4).encode()
     with gzip.open(FILE_NAME, 'wb') as f:
         f.write(gz)
 

@@ -83,6 +83,7 @@ class Project:
         self.data = data
         self.url = data["master_url"]
         self.nomorework = data["don_t_request_more_work"] == "yes"
+        self.suspended = data["suspended_via_gui"] == "yes"
         self.tasks = self.get_tasks()
 
     @classmethod
@@ -118,6 +119,8 @@ class Project:
         )
         if self.nomorework:
             output += ", no more new work"
+        if self.suspended:
+            output += ", suspended"
         return output
 
 

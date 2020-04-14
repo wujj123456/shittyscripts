@@ -1,124 +1,108 @@
 #!/usr/bin/env python3
 
+import argparse
+from collections import OrderedDict
+from html.parser import HTMLParser
 from urllib.request import urlopen
 import urllib.error
 from tabulate import tabulate
-import re, threading
 
-#import pprint
-#pp = pprint.PrettyPrinter(indent=4)
 
-symbols = set([
-    'AAPL',
-    'AMD',
-    'AMZN',
-    'ATVI',
-    'BILI',
-    'EA',
-	'EBAY',
-    'FB',
-    'GOOG',
-    'IBM',
-    'INTC',
-    'MRVL',
-    'MSFT',
-    'MU',
-    'NFLX',
-    'NVDA',
-    'PYPL',
-    'QCOM',
-	'SNAP',
-    'SNE',
-    'STX',
-    'TSLA',
-    'TTWO',
-    'TWTR',
-    'WD',
-    'YELP',
-])
-dates = {}
+symbols = {
+    "AAPL",
+    "AMD",
+    "AMZN",
+    "ATVI",
+    "BILI",
+    "EA",
+    "EBAY",
+    "FB",
+    "GOOG",
+    "INTC",
+    "MSFT",
+    "MU",
+    "NFLX",
+    "NVDA",
+    "PYPL",
+    "QCOM",
+    "SNE",
+    "STX",
+    "TSLA",
+    "TSM",
+    "TTWO",
+    "TWTR",
+    "WDC",
+}
 
-report_patterns = [
-    re.compile(
-        '.*(?P<type>(expected|estimated)).*to report earnings '
-        'on\s+(?P<date>[\d/]*)\s+(?P<time>(before|after)) market.*'
-    ),
-    re.compile(
-        '.*(?P<type>(expected|estimated)).*to report earnings '
-        'on\s+(?P<date>[\d/]*).*'
-    ),
-]
-ex_div_pattern = re.compile(
-    '.*<span id="quotes_content_left_dividendhistoryGrid_exdate_0">'
-    '(?P<date>[\d/]+)</span>.*'
-    '<span id="quotes_content_left_dividendhistoryGrid_CashAmount_0">'
-    '(?P<amount>[\d.]+)</span>.*'
-)
 
-def get_report_date(symbol):
-    url = 'http://www.nasdaq.com/earnings/report/' + symbol.lower()
-    dates[symbol] = {
-        'report': 'unknown',
-        'type': 'unknown',
-    }
-    try:
-        result = urlopen(url).read()
-    except urllib.error.HTTPError as e:
-        print(e.code, e.reason)
-        return
-    for p in report_patterns:
-        g = p.match(str(result))
-        if g:
-            d = g.groupdict()
-            dates[symbol] = {
-                'report': d['date'],
-                'type': d['type'],
-            }
-            if 'time' in d:
-                dates[symbol]['report'] = '{} {} market'.format(
-                    d['date'], d['time'],
-                )
-            break
+class YahooFinanceHTMLParser(HTMLParser):
 
-def get_div_date(symbol):
-    url = 'http://www.nasdaq.com/symbol/{}/dividend-history'.format(symbol)
-    dates[symbol]['div_date'] = None
-    try:
-        result = urlopen(url).read()
-    except urllib.error.HTTPError as e:
-        print(e.code, e.reason)
-        return
-    g = ex_div_pattern.match(str(result))
-    if g:
-        dates[symbol]['div_date'] = '{} ${}'.format(
-            g.groupdict()['date'],
-            g.groupdict()['amount'],
-        )
+    FIELDS = OrderedDict({
+        "report_date": "Earnings Date",
+        "dividend": "Forward Dividend & Yield",
+        "dividend_date": "Ex-Dividend Date",
+    })
 
-def print_dates():
-    data = [
-        (sym, v['report'], v['type'], v['div_date'])
-        for sym, v in dates.items()
-    ]
-    data = sorted(data, key=lambda s:s[1])
-    print(tabulate(
-        data,
-        headers=['symbol', 'report date', 'type', 'div date'],
-    ))
+    def __init__(self, symbol, *arg, **kwarg):
+        super().__init__(*arg, **kwarg)
+        self.data = {}
+        self.record = None
 
-def get_data(func):
-    threads = []
-    for s in symbols:
-        t = threading.Thread(target=func, args=[s])
-        t.start()
-        threads.append(t)
-    for t in threads:
-        t.join()
+        self.symbol = symbol
+        self.url = f"https://finance.yahoo.com/quote/{self.symbol}"
+
+    def get_raw_html(self):
+        try:
+            result = urlopen(self.url).read()
+        except urllib.error.HTTPError as e:
+            print(e.code, e.reason)
+            return
+        return result.decode("utf-8")
+
+    def handle_data(self, data):
+        if self.record:
+            self.data[self.record] = data
+            self.record = None
+
+        for k, v in self.FIELDS.items():
+            if data == v:
+                self.record = k
+
+    def query(self):
+        self.feed(self.get_raw_html())
+
+
+def get_data_for_symbols(symbols):
+    result = OrderedDict()
+    for symbol in symbols:
+        html_parser = YahooFinanceHTMLParser(symbol)
+        html_parser.query()
+        result[symbol] = html_parser.data
+    return result
+
+
+def tabulate_output(data):
+    rows = []
+    for symbol, info in data.items():
+        row = [symbol]
+        for k in YahooFinanceHTMLParser.FIELDS:
+            row.append(info[k])
+        rows.append(row)
+    headers = ["Symbol"] + [v for v in YahooFinanceHTMLParser.FIELDS.values()]
+    print(tabulate(rows, headers=headers))
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Script to get earning info")
+    parser.add_argument("--symbols", nargs="+", default=symbols, help="List of symbols to query for")
+    return parser.parse_args()
+
 
 def main():
-    get_data(get_report_date)
-    get_data(get_div_date)
-    print_dates()
+    args = parse_args()
+    results = get_data_for_symbols(args.symbols)
+    tabulate_output(results)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

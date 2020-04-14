@@ -8,7 +8,7 @@ import urllib.error
 from tabulate import tabulate
 
 
-symbols = {
+symbols = [
     "AAPL",
     "AMD",
     "AMZN",
@@ -32,16 +32,19 @@ symbols = {
     "TTWO",
     "TWTR",
     "WDC",
-}
+]
 
 
 class YahooFinanceHTMLParser(HTMLParser):
 
-    FIELDS = OrderedDict({
-        "report_date": "Earnings Date",
-        "dividend": "Forward Dividend & Yield",
-        "dividend_date": "Ex-Dividend Date",
-    })
+    FIELDS = OrderedDict(
+        {
+            "close": "Previous Close",
+            "report_date": "Earnings Date",
+            "dividend": "Forward Dividend & Yield",
+            "dividend_date": "Ex-Dividend Date",
+        }
+    )
 
     def __init__(self, symbol, *arg, **kwarg):
         super().__init__(*arg, **kwarg)
@@ -94,7 +97,9 @@ def tabulate_output(data):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script to get earning info")
-    parser.add_argument("--symbols", nargs="+", default=symbols, help="List of symbols to query for")
+    parser.add_argument(
+        "--symbols", nargs="+", default=symbols, help="List of symbols to query for"
+    )
     return parser.parse_args()
 
 

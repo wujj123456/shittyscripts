@@ -70,7 +70,7 @@ def main():
     short_gain_amend = max(0, short_gain - loss_carryover)
     long_gain_amend = max(0, long_gain - max(0, loss_carryover - short_gain))
 
-    withhold = prompt("YTD withold")
+    withhold = prompt("YTD withhold")
     withhold += prompt("YTD payments")
 
     it = calc_income_tax(income)

@@ -83,8 +83,15 @@ def get_data_for_symbols(symbols):
         result[symbol] = html_parser.data
     return result
 
+def get_sort_index(sort_by):
+    if not sort_by:
+        return 0
+    for i, k in enumerate(YahooFinanceHTMLParser.FIELDS.keys()):
+        if k == sort_by:
+            return i + 1
+    return 0
 
-def tabulate_output(data):
+def tabulate_output(data, sort_by=None):
     rows = []
     for symbol, info in data.items():
         row = [symbol]
@@ -92,7 +99,8 @@ def tabulate_output(data):
             row.append(info[k])
         rows.append(row)
     headers = ["Symbol"] + [v for v in YahooFinanceHTMLParser.FIELDS.values()]
-    print(tabulate(rows, headers=headers))
+    sort_index = get_sort_index(sort_by)
+    print(tabulate(sorted(rows, key=lambda x:x[sort_index]), headers=headers))
 
 
 def parse_args():
@@ -100,13 +108,18 @@ def parse_args():
     parser.add_argument(
         "--symbols", nargs="+", default=symbols, help="List of symbols to query for"
     )
+    parser.add_argument(
+        "--sort-by",
+        choices=list(YahooFinanceHTMLParser.FIELDS.keys()),
+        help="Sort by selected field",
+    )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
     results = get_data_for_symbols(args.symbols)
-    tabulate_output(results)
+    tabulate_output(results, args.sort_by)
 
 
 if __name__ == "__main__":

@@ -17,7 +17,7 @@ symbols = [
     "EA",
     "EBAY",
     "FB",
-    "GOOG",
+    "GOOGL",
     "INTC",
     "MSFT",
     "MU",
@@ -110,6 +110,7 @@ def parse_args():
     )
     parser.add_argument(
         "--sort-by",
+        default="report_date",
         choices=list(YahooFinanceHTMLParser.FIELDS.keys()),
         help="Sort by selected field",
     )

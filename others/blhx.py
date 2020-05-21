@@ -235,6 +235,7 @@ class HomeExp(object):
         3: 2.4,
         4: 2.8,
         5: 3.2,
+        6: 3.6,
     }
     BASE_FUEL_PER_SEC = 1/3
     BASE_FUEL_PER_HOUR = BASE_FUEL_PER_SEC * 3600
@@ -262,7 +263,7 @@ class HomeExp(object):
         return self.base_exp_per_hour * ships
 
     def _calculate(self):
-        for i in range(1, 6):
+        for i in range(1, len(self.SHIP_MULTIPLIER) + 1):
             exp_per_hour_ship = self._calculate_exp_per_hour_ship(i)
             self.exp_per_hour[i] = (
                 exp_per_hour_ship,
@@ -277,7 +278,7 @@ class HomeExp(object):
 
 
 def print_home(args):
-    home_exp = HomeExp(args.rank, args.comfort)
+    home_exp = HomeExp(args.rank, args.comfort, args.multiplier)
     print('Exp per fuel: {}\n'.format(home_exp.base_exp_per_fuel))
     home_exp.print_exp_table()
 

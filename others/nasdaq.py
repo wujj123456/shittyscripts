@@ -10,6 +10,7 @@ from tabulate import tabulate
 
 symbols = [
     "AAPL",
+    "AKAM",
     "AMD",
     "AMZN",
     "ATVI",
@@ -21,6 +22,7 @@ symbols = [
     "INTC",
     "MSFT",
     "MU",
+    "NET",
     "NFLX",
     "NVDA",
     "PYPL",

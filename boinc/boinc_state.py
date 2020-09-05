@@ -90,6 +90,8 @@ class Project:
     def get_all_tasks(self):
         output = []
         tasks = BoincCmd(["--get_tasks"])
+        if not tasks:
+            return []
         return list(tasks.contents["tasks"].values())
 
     def get_tasks(self):

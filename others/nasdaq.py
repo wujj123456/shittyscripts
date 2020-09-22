@@ -3,38 +3,10 @@
 import argparse
 from collections import OrderedDict
 from html.parser import HTMLParser
+import sys
 from urllib.request import urlopen
 import urllib.error
 from tabulate import tabulate
-
-
-symbols = [
-    "AAPL",
-    "AKAM",
-    "AMD",
-    "AMZN",
-    "ATVI",
-    "BILI",
-    "EA",
-    "EBAY",
-    "FB",
-    "GOOGL",
-    "INTC",
-    "MSFT",
-    "MU",
-    "NET",
-    "NFLX",
-    "NVDA",
-    "PYPL",
-    "QCOM",
-    "SNE",
-    "STX",
-    "TSLA",
-    "TSM",
-    "TTWO",
-    "TWTR",
-    "WDC",
-]
 
 
 class YahooFinanceHTMLParser(HTMLParser):
@@ -85,6 +57,7 @@ def get_data_for_symbols(symbols):
         result[symbol] = html_parser.data
     return result
 
+
 def get_sort_index(sort_by):
     if not sort_by:
         return 0
@@ -92,6 +65,7 @@ def get_sort_index(sort_by):
         if k == sort_by:
             return i + 1
     return 0
+
 
 def tabulate_output(data, sort_by=None):
     rows = []
@@ -102,13 +76,17 @@ def tabulate_output(data, sort_by=None):
         rows.append(row)
     headers = ["Symbol"] + [v for v in YahooFinanceHTMLParser.FIELDS.values()]
     sort_index = get_sort_index(sort_by)
-    print(tabulate(sorted(rows, key=lambda x:x[sort_index]), headers=headers))
+    print(tabulate(sorted(rows, key=lambda x: x[sort_index]), headers=headers))
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Script to get earning info")
-    parser.add_argument(
-        "--symbols", nargs="+", default=symbols, help="List of symbols to query for"
+    symbol_parser = parser.add_mutually_exclusive_group(required=True)
+    symbol_parser.add_argument(
+        "--symbols", nargs="+", help="List of symbols to query for"
+    )
+    symbol_parser.add_argument(
+        "--stdin", action="store_true", help="Parse symbols from stdin. One per line"
     )
     parser.add_argument(
         "--sort-by",
@@ -121,6 +99,13 @@ def parse_args():
 
 def main():
     args = parse_args()
+
+    if args.stdin:
+        args.symbols = sys.stdin.readlines()
+
+    if not args.symbols:
+        print("No symbols passed in. Exiting")
+        return
     results = get_data_for_symbols(args.symbols)
     tabulate_output(results, args.sort_by)
 

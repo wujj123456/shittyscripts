@@ -7,12 +7,12 @@ import sys
 
 def calc_income_tax(income):
     brackets = [
-        (9700, 0.1),
-        (39475, 0.12),
-        (84200, 0.22),
-        (160725, 0.24),
-        (204100, 0.32),
-        (510300, 0.35),
+        (9875, 0.1),
+        (40125, 0.12),
+        (85525, 0.22),
+        (163300, 0.24),
+        (207350, 0.32),
+        (518400, 0.35),
         (sys.maxsize, 0.37),
     ]
 
@@ -31,8 +31,8 @@ def calc_income_tax(income):
 
 def calc_long_term_tax(income, gain):
     brackets = [
-        (39375, 0),
-        (434550, 0.15),
+        (40000, 0),
+        (441450, 0.15),
         (sys.maxsize, 0.2),
     ]
 
@@ -64,7 +64,7 @@ def main():
     income -= prompt("Pre-tax deduction")
     short_gain = prompt("YTD short-term gain")
     long_gain = prompt("YTD long-term gain")
-    loss_carryover = prompt("Loss carryover")
+    loss_carryover = prompt("Loss carryover (0-3000)")
     income = income + short_gain - loss_carryover
 
     short_gain_amend = max(0, short_gain - loss_carryover)

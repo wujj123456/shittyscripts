@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
 import argparse
+import calendar
 from collections import OrderedDict
+import datetime
 from html.parser import HTMLParser
+import re
 import sys
+from tabulate import tabulate
 from urllib.request import urlopen
 import urllib.error
-from tabulate import tabulate
 
 
 class YahooFinanceHTMLParser(HTMLParser):
@@ -19,6 +22,8 @@ class YahooFinanceHTMLParser(HTMLParser):
             "dividend_date": "Ex-Dividend Date",
         }
     )
+    MONTH_ABBR_TO_NUM = {m: i for i, m in enumerate(calendar.month_abbr) if m}
+    DATE_REGEX = re.compile("(?P<m>[a-zA-Z]+) (?P<d>\d+), (?P<y>\d+)")
 
     def __init__(self, symbol, *arg, **kwarg):
         super().__init__(*arg, **kwarg)
@@ -38,6 +43,8 @@ class YahooFinanceHTMLParser(HTMLParser):
 
     def handle_data(self, data):
         if self.record:
+            if "date" in self.record:
+                data = self.format_date(data)
             self.data[self.record] = data
             self.record = None
 
@@ -47,6 +54,16 @@ class YahooFinanceHTMLParser(HTMLParser):
 
     def query(self):
         self.feed(self.get_raw_html())
+
+    def format_date(self, date_str):
+        m = re.match(self.DATE_REGEX, date_str)
+        if not m:
+            return date_str
+
+        d = m.groupdict()
+        month = self.MONTH_ABBR_TO_NUM[d["m"]]
+        date = datetime.date(int(d["y"]), month, int(d["d"]))
+        return date.isoformat()
 
 
 def get_data_for_symbols(symbols):

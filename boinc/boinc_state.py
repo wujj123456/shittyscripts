@@ -25,7 +25,7 @@ class BoincCmd:
 
     def __init__(self, cmd, key_by_name=True):
         result = subprocess.run([self.CLI] + cmd, stdout=subprocess.PIPE)
-        contents = self.parse(result.stdout.decode("utf-8").split("\n"))
+        contents = self.parse(result.stdout.decode("utf-8").splitlines())
         if key_by_name:
             self.contents = self.key_by_name(contents)
         else:

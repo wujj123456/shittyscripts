@@ -54,7 +54,7 @@ def calc_niit(income, gain):
 def prompt(text):
     result = input(f"{text}: ")
     if result.strip():
-        return int(result)
+        return float(result)
     else:
         return 0
 
@@ -78,8 +78,8 @@ def main():
     niit = calc_niit(income, long_gain_amend + short_gain_amend)
     total = it + ltt + niit
 
-    print(f"income tax: {it} long-term: {ltt} NIIT: {niit}")
-    print(f"paid: {withhold} required: {total} owe: {total - withhold}")
+    print(f"income tax: {it:.2f} long-term: {ltt:.2f} NIIT: {niit:.2f}")
+    print(f"paid: {withhold} required: {total:.2f} owe: {total - withhold:.2f}")
 
 
 main()

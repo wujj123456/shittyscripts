@@ -2,20 +2,36 @@
 # A calculator simply tells me if I am currently underpaying
 # All stupid online calculators ask me to predict future
 
+import argparse
 import sys
 
 
-def calc_income_tax(income):
-    brackets = [
-        (9875, 0.1),
-        (40125, 0.12),
-        (85525, 0.22),
-        (163300, 0.24),
-        (207350, 0.32),
-        (518400, 0.35),
-        (sys.maxsize, 0.37),
-    ]
+# (upto, tax rate)
+FEDERAL = [
+    (9875, 0.1),
+    (40125, 0.12),
+    (85525, 0.22),
+    (163300, 0.24),
+    (207350, 0.32),
+    (518400, 0.35),
+    (sys.maxsize, 0.37),
+]
 
+CA = [
+    (8809, 0.01),
+    (20883, 0.02),
+    (32960, 0.04),
+    (45753, 0.06),
+    (57824, 0.08),
+    (295373, 0.093),
+    (354445, 0.103),
+    (590742, 0.113),
+    (1000000, 0.123),
+    (sys.maxsize, 0.133),
+]
+
+
+def calc_income_tax(income, brackets):
     tax = 0
     prev = 0
     for bracket, rate in brackets:
@@ -51,35 +67,103 @@ def calc_niit(income, gain):
     return 0
 
 
-def prompt(text):
-    result = input(f"{text}: ")
-    if result.strip():
-        return float(result)
+def annihilate(a, b):
+    if a * b >= 0:
+        return a, b
+    if a > 0:
+        return max(0, a + b), min(0, a + b)
     else:
-        return 0
+        return min(0, a + b), max(0, a + b)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Simple Tax Calculator")
+    parser.add_argument(
+        "-i", "--income", type=float, required=True, help="YTD Gross Pay"
+    )
+    parser.add_argument(
+        "-d", "--deduction", type=float, required=True, help="YTD Pre-tax Deduction"
+    )
+    parser.add_argument(
+        "-sg", "--st-gain", type=float, default=0, help="YTD short-term gain"
+    )
+    parser.add_argument(
+        "-lg", "--lt-gain", type=float, default=0, help="YTD long-term gain"
+    )
+    parser.add_argument(
+        "-sc", "--st-carryover", type=float, default=0, help="Short-term Loss Carryover"
+    )
+    parser.add_argument(
+        "-lc", "--lt-carryover", type=float, default=0, help="Long-term Loss Carryover"
+    )
+
+    parser.add_argument(
+        "-w", "--withhold", type=float, required=True, help="YTD Withhold"
+    )
+    parser.add_argument(
+        "-p", "--payments", type=float, default=0, help="YTD Quarterly Payments"
+    )
+
+    parser.add_argument(
+        "--state", action="store_true", help="Calculate CA tax instead of federal"
+    )
+    return parser.parse_args()
+
+
+def federal(args):
+    income = args.income - args.deduction
+    st_gain = args.st_gain + args.st_carryover
+    lt_gain = args.lt_gain + args.lt_carryover
+    st_gain, lt_gain = annihilate(st_gain, lt_gain)
+    gain = st_gain + lt_gain
+    if gain < 0:
+        income += max(-3000, gain)
+    else:
+        income += st_gain
+    print(f"Gross income: {income:.2f}")
+    print(f"Long-term gain: {lt_gain:.2f}")
+    print(f"Short-term gain: {st_gain:.2f}")
+    print()
+
+    withhold = args.withhold + args.payments
+    income_tax = calc_income_tax(income, FEDERAL)
+    lt_tax = calc_long_term_tax(income, lt_gain)
+    niit = calc_niit(income, gain)
+    total = income_tax + lt_tax + niit
+    print(f"Income tax: {income_tax:.2f}")
+    print(f"Long-term gain tax: {lt_tax:.2f}")
+    print(f"NIIT: {niit:.2f}")
+    print(f"Paid: {withhold:.2f} ({withhold / total * 100:.2f}%)")
+    print(f"Required: {total:.2f}")
+    print(f"Owe: {total - withhold:.2f}")
+
+
+def ca(args):
+    income = args.income - args.deduction
+    gain = args.st_gain + args.st_carryover + args.lt_gain + args.lt_carryover
+    if gain < 0:
+        income += max(-3000, gain)
+    else:
+        income += gain
+    print(f"Gross income: {income:.2f}")
+
+    withhold = args.withhold + args.payments
+    tax = calc_income_tax(income, CA)
+    print(f"Income tax: {tax:.2f}")
+    print(f"Paid: {withhold:.2f}  ({withhold / tax * 100:.2f}%)")
+    print(f"Owe: {tax - withhold:.2f}")
 
 
 def main():
-    income = prompt("YTD Gross Pay")
-    income -= prompt("Pre-tax deduction")
-    short_gain = prompt("YTD short-term gain")
-    long_gain = prompt("YTD long-term gain")
-    loss_carryover = prompt("Loss carryover (0-3000)")
-    income = income + short_gain - loss_carryover
+    args = parse_args()
+    if args.st_carryover > 0 or args.lt_carryover > 0:
+        print("Carryover must be negative")
+        return -1
 
-    short_gain_amend = max(0, short_gain - loss_carryover)
-    long_gain_amend = max(0, long_gain - max(0, loss_carryover - short_gain))
-
-    withhold = prompt("YTD withhold")
-    withhold += prompt("YTD payments")
-
-    it = calc_income_tax(income)
-    ltt = calc_long_term_tax(income, long_gain)
-    niit = calc_niit(income, long_gain_amend + short_gain_amend)
-    total = it + ltt + niit
-
-    print(f"income tax: {it:.2f} long-term: {ltt:.2f} NIIT: {niit:.2f}")
-    print(f"paid: {withhold} required: {total:.2f} owe: {total - withhold:.2f}")
+    if args.state:
+        ca(args)
+    else:
+        federal(args)
 
 
-main()
+sys.exit(main())

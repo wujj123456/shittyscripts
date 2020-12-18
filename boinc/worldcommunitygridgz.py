@@ -188,7 +188,7 @@ def analyze_data(data):
         total_samples = 0
         all_ratios = []
         for a, v in app.items():
-            ratios = [c / t for c, t in v]
+            ratios = [c / t for c, t in v if t > 0]
             times = [t for c, t in v]
             pts_sum = sum(c for c, t in v)
             time_sum = sum(t for c, t in v)
